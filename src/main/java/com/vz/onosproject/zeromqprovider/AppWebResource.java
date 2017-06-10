@@ -55,6 +55,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.util.List;
 
 
@@ -80,6 +82,11 @@ public class AppWebResource extends AbstractWebResource {
 
     private final String INVALID_DEVICEID = "No such device available";
     private final String INVALID_FLOW = "Malformed flow payload";
+
+    private static byte CREATE_SESSION_TYPE = 0b0000_0001;
+    private static byte DELETE_SESSION_TYPE = 0b0000_0011;
+    private static byte MODIFY_UL_BEARER_TYPE = 0b0000_0100;
+    private static byte MODIFY_DL_BEARER_TYPE = 0b0000_0010;
 
     public enum FpcMsgType {
         SESSION_UPLINK,
@@ -175,6 +182,111 @@ public class AppWebResource extends AbstractWebResource {
        return false;
     }
 
+
+    /**
+     * Short to Byte
+     * @param value - Short
+     * @return byte value
+     */
+    public byte toUint8(Short value) {
+        return value.byteValue();
+    }
+
+    /**
+     * Short to byte array
+     * @param value - Short
+     * @return byte array
+     */
+    public byte[] toUint16(Short value) {
+        return new byte[]{(byte)(value>>>8),(byte)(value&0xFF)};
+    }
+
+    /**
+     * Long to byte array.
+     * @param value - long
+     * @return byte array
+     */
+    public byte[] toUint32(long value) {
+        return new byte[]{(byte)(value>>>24),(byte)(value>>>16),(byte)(value>>>8),(byte)(value&0xFF)};
+    }
+
+    /**
+     * BigInteger to byte array.
+     * @param value - BigInteger
+     * @return byte array
+     */
+    public byte[] toUint64(BigInteger value) {
+        return new byte[]{value.shiftRight(56).byteValue(),value.shiftRight(48).byteValue(),value.shiftRight(40).byteValue(),
+                value.shiftRight(32).byteValue(),value.shiftRight(24).byteValue(),value.shiftRight(16).byteValue(),
+                value.shiftRight(8).byteValue(),value.and(BigInteger.valueOf(0xFF)).byteValue()};
+    }
+
+    public ByteBuffer prepareCreateSessionPayload(
+            String dpn,
+            String imsi,
+            String ue_ip,
+            String lbi,
+            String s1u_sgw_gtpu_ipv4,
+            String s1u_sgw_gtpu_teid  // Although this is intended to be a Uint32
+            //UlTftTable ul_tft_table
+    )
+    {
+        //Create byte[] from arguments
+        ByteBuffer bb = ByteBuffer.allocate(24);
+        bb.put(dpn.getBytes())
+                .put(CREATE_SESSION_TYPE)
+                .put(toUint64(new BigInteger(imsi)))
+                .put(toUint8(new Short(lbi)))
+                .put(toUint32(new Long(ue_ip)))
+                .put(toUint32(new Long(s1u_sgw_gtpu_teid)))
+                .put(toUint32(new Long(s1u_sgw_gtpu_ipv4)));
+
+        return bb;
+    }
+
+
+    public ByteBuffer prepareDeleteSessionPayload(
+            String dpn,
+            String del_default_ebi,
+            String s1u_sgw_gtpu_teid
+    )
+    {
+        ByteBuffer bb = ByteBuffer.allocate(7);
+        bb.put(dpn.getBytes())
+                .put(DELETE_SESSION_TYPE)
+                .put(toUint8(new Short(del_default_ebi)))
+                .put(toUint32(new Long(s1u_sgw_gtpu_teid)));
+
+        return bb;
+    }
+
+    public ByteBuffer prepareModifySessionPayload(
+            String dpn,
+            String s1u_sgw_gtpu_teid,
+            String s1u_enb_gtpu_ipv4,
+            String s1u_enb_gtpu_teid)
+    {
+        ByteBuffer bb = ByteBuffer.allocate(15);
+        bb.put(dpn.getBytes())
+                .put(MODIFY_DL_BEARER_TYPE)
+                .put(toUint32(new Long(s1u_enb_gtpu_ipv4)))
+                .put(toUint32(new Long(s1u_enb_gtpu_teid)))
+                .put(toUint32(new Long(s1u_sgw_gtpu_teid)));
+
+        return bb;
+    }
+
+    String extractImsi(String imsi) {
+        String parts[] = imsi.split("[/]");
+        for( String item : parts) {
+            //System.out.println(item);
+            if(item.contains("imsi-")) {
+                return item;
+            }
+        }
+
+        return null;
+    }
     /**
      * Installs flows to downstream ZMQ device
      * @param stream blob flowrule
@@ -226,7 +338,7 @@ public class AppWebResource extends AbstractWebResource {
             Blob blob = new Blob(sPayload.getBytes());
 
             store.InsertBlob(deviceId, blob);
-            controller.writeToDevice(deviceId, blob);
+            //controller.writeToDevice(deviceId, blob);
             incrPostCount();
             log.info("#### Total num of posts :  " + getNumPostRecieved());
 
@@ -237,13 +349,28 @@ public class AppWebResource extends AbstractWebResource {
             // First check for delete as JSON itself
             if(isDeleteMsg(sPayload)) {
                 log.info("### It is session delete");
-                String imsi = dto.getPayload().getInput().getTargets().get(0).getTarget();
+                String imsi = extractImsi(dto.getPayload().getInput().getTargets().get(0).getTarget());
                 Versioned<FpcDTO> dto2 = fpcSet.get(imsi);
                 if (dto2 != null) {
                     FpcDTO ddto = dto2.value();
-                    log.info("Here is a matching ul & dl for incoming imsi");
-                    log.info("#######");
-                    log.info(ddto.toString());
+                    //log.info("Here is a matching ul & dl for incoming imsi");
+                    //log.info("#######");
+                    //log.info(ddto.toString());
+                    log.info("Proceeding to delete session marked by imsi => %s", imsi);
+                    Context con = ddto.getPayload().getInput().getContexts().get(0);
+                    String dpn = con.getDpns().get(0).getDpnId();
+                    String ebi = con.getLbi();
+                    String teid = con.getUl().getMobilityTunnelParameters().getTunnelIdentifier();
+
+                    ByteBuffer bb = prepareDeleteSessionPayload(dpn, ebi,teid);
+                    blob.setBlob(bb.array());
+
+                    controller.writeToDevice(deviceId, blob);
+                    log.info("Payload sent to Device %s for IMSI %s", deviceId, imsi);
+
+                    fpcSet.remove(imsi);
+                    log.info(" Transaction record for IMSI %s purged from store", imsi);
+
                 } else {
                     throw new IllegalArgumentException("No matching uplink");
                 }
@@ -253,22 +380,48 @@ public class AppWebResource extends AbstractWebResource {
                 switch (checkAndReturnInstructionType(dto)) {
                     case SESSION_UPLINK: {
                         log.info("### It is session uplink");
-                        String imsi = dto.getPayload().getInput().getContexts().get(0).getImsi();
+                        //String imsi = dto.getPayload().getInput().getContexts().get(0).getImsi();
+                        String imsi = dto.getPayload().getInput().getContexts().get(0).getContextId();
                         fpcSet.put(imsi, dto);
                         log.info("##### Saved uplink data for IMSI => " + imsi);
                         Context con = dto.getPayload().getInput().getContexts().get(0);
                         String dpn = con.getDpns().get(0).getDpnId();
+                        String ue_ip = con.getDelegatingIpPrefixes().get(0);
+                        String lbi = con.getEbi();
+                        String s1u_sgw_gtpu_ipv4 = con.getUl().getTunnelLocalAddress();
+                        String s1u_sgw_gtpu_teid = con.getUl().getMobilityTunnelParameters().getTunnelIdentifier();
+
+                        ByteBuffer bb = prepareCreateSessionPayload(dpn, imsi, ue_ip, lbi, s1u_sgw_gtpu_ipv4, s1u_sgw_gtpu_teid);
+                        blob.setBlob(bb.array());
+
+                        controller.writeToDevice(deviceId, blob);
+                        log.info("Payload sent to Device %s for IMSI %s", deviceId, imsi);
+
 
                         break;
                     }
                     case DOWNLINK: {
                         log.info("### It is session downlink");
-                        String imsi = dto.getPayload().getInput().getContexts().get(0).getImsi();
+                        //String imsi = dto.getPayload().getInput().getContexts().get(0).getImsi();
+                        String imsi = dto.getPayload().getInput().getContexts().get(0).getContextId();
                         Versioned<FpcDTO> dto2 = fpcSet.get(imsi);
                         if (dto2 != null) {
                             FpcDTO ddto = dto2.value();
                             ddto.getPayload().getInput().getContexts().get(0).
                                     setDl(ddto.getPayload().getInput().getContexts().get(0).getDl());
+                            Context con = dto.getPayload().getInput().getContexts().get(0);
+                            String dpn = con.getDpns().get(0).getDpnId();
+                            String s1u_sgw_gtpu_teid = con.getUl().getMobilityTunnelParameters().getTunnelIdentifier();
+                            String s1u_enb_gtpu_ipv4 = con.getDl().getTunnelLocalAddress();
+                            String s1u_enb_gtpu_teid = con.getUl().getMobilityTunnelParameters().getTunnelIdentifier();
+
+                            ByteBuffer bb = prepareModifySessionPayload(dpn, s1u_sgw_gtpu_teid, s1u_enb_gtpu_ipv4, s1u_enb_gtpu_teid);
+                            blob.setBlob(bb.array());
+
+                            controller.writeToDevice(deviceId, blob);
+                            log.info("Payload sent to Device %s for IMSI %s", deviceId, imsi);
+
+
                         } else {
                             throw new IllegalArgumentException("No matching uplink");
                         }
