@@ -221,6 +221,52 @@ public class AppWebResource extends AbstractWebResource {
                 value.shiftRight(8).byteValue(),value.and(BigInteger.valueOf(0xFF)).byteValue()};
     }
 
+    /**
+     * Converts IPv4 string to a long
+     * @param ipAddress - IPv4 String
+     * @return long value of ipv4 address
+     */
+    public static long ipv4ToLong(String ipAddress) {
+        long result = 0;
+
+        String[] ipAddressInArray = ipAddress.split("\\.");
+
+        for (int i = 3; i >= 0; i--) {
+
+            long ip = Long.parseLong(ipAddressInArray[3 - i]);
+
+            // left shifting 24,16,8,0 and bitwise OR
+
+            // 1. 192 << 24
+            // 1. 168 << 16
+            // 1. 1 << 8
+            // 1. 2 << 0
+            result |= ip << (i * 8);
+        }
+
+        return result;
+    }
+
+    /**
+     * Determines the CIDR base
+     * @param cidr - CIDR entry 
+     * @return long value representing the CIDR base
+     */
+    public static long cidrBase(String cidr)  {
+        String[] parts = cidr.split("/");
+        long result = 0;
+        int prefix = (parts.length < 2) ? 0 : Integer.parseInt(parts[1]);
+        long netmask = 0x0FFFFFFFFL << (32 - prefix);
+
+        String[] ipAddressInArray = parts[0].split("\\.");
+        for (int i = 3; i >= 0; i--) {
+            long ip = Long.parseLong(ipAddressInArray[3 - i]);
+            result |= ip << (i * 8);
+        }
+
+        return result &= netmask;
+    }
+
     public ByteBuffer prepareCreateSessionPayload(
             String dpn,
             String imsi,
@@ -232,14 +278,15 @@ public class AppWebResource extends AbstractWebResource {
     )
     {
         //Create byte[] from arguments
-        ByteBuffer bb = ByteBuffer.allocate(24);
-        bb.put(dpn.getBytes())
+//        ByteBuffer bb = ByteBuffer.allocate(dpn.length() + 1 + 8 + 1 + 4 + 4 + 4);
+        ByteBuffer bb = ByteBuffer.allocate(23);
+        bb.put(dpn.substring(0,1).getBytes())
                 .put(CREATE_SESSION_TYPE)
                 .put(toUint64(new BigInteger(imsi)))
                 .put(toUint8(new Short(lbi)))
-                .put(toUint32(new Long(ue_ip)))
+                .put(toUint32(cidrBase(ue_ip)))
                 .put(toUint32(new Long(s1u_sgw_gtpu_teid)))
-                .put(toUint32(new Long(s1u_sgw_gtpu_ipv4)));
+                .put(toUint32(ipv4ToLong(s1u_sgw_gtpu_ipv4)));
 
         return bb;
     }
@@ -251,8 +298,9 @@ public class AppWebResource extends AbstractWebResource {
             String s1u_sgw_gtpu_teid
     )
     {
+//        ByteBuffer bb = ByteBuffer.allocate(dpn.length() + 1 + 1 + 4);
         ByteBuffer bb = ByteBuffer.allocate(7);
-        bb.put(dpn.getBytes())
+        bb.put(dpn.substring(0,1).getBytes())
                 .put(DELETE_SESSION_TYPE)
                 .put(toUint8(new Short(del_default_ebi)))
                 .put(toUint32(new Long(s1u_sgw_gtpu_teid)));
@@ -266,10 +314,11 @@ public class AppWebResource extends AbstractWebResource {
             String s1u_enb_gtpu_ipv4,
             String s1u_enb_gtpu_teid)
     {
-        ByteBuffer bb = ByteBuffer.allocate(15);
-        bb.put(dpn.getBytes())
+//        ByteBuffer bb = ByteBuffer.allocate(dpn.length() + 1 + 4 + 4 + 4);
+        ByteBuffer bb = ByteBuffer.allocate(14);
+        bb.put(dpn.substring(0,1).getBytes())
                 .put(MODIFY_DL_BEARER_TYPE)
-                .put(toUint32(new Long(s1u_enb_gtpu_ipv4)))
+                .put(toUint32(ipv4ToLong(s1u_enb_gtpu_ipv4)))
                 .put(toUint32(new Long(s1u_enb_gtpu_teid)))
                 .put(toUint32(new Long(s1u_sgw_gtpu_teid)));
 
@@ -380,17 +429,19 @@ public class AppWebResource extends AbstractWebResource {
                 switch (checkAndReturnInstructionType(dto)) {
                     case SESSION_UPLINK: {
                         log.info("### It is session uplink");
-                        //String imsi = dto.getPayload().getInput().getContexts().get(0).getImsi();
-                        String imsi = dto.getPayload().getInput().getContexts().get(0).getContextId();
+                        String imsi = dto.getPayload().getInput().getContexts().get(0).getImsi();
+                        // String imsi = dto.getPayload().getInput().getContexts().get(0).getContextId();
                         fpcSet.put(imsi, dto);
                         log.info("##### Saved uplink data for IMSI => " + imsi);
                         Context con = dto.getPayload().getInput().getContexts().get(0);
                         String dpn = con.getDpns().get(0).getDpnId();
+                        log.info("##### Delegating Prefixes => " + con.getDelegatingIpPrefixes().toString());
                         String ue_ip = con.getDelegatingIpPrefixes().get(0);
                         String lbi = con.getEbi();
                         String s1u_sgw_gtpu_ipv4 = con.getUl().getTunnelLocalAddress();
                         String s1u_sgw_gtpu_teid = con.getUl().getMobilityTunnelParameters().getTunnelIdentifier();
 
+                        log.info("##### Before Prepare Create Session");
                         ByteBuffer bb = prepareCreateSessionPayload(dpn, imsi, ue_ip, lbi, s1u_sgw_gtpu_ipv4, s1u_sgw_gtpu_teid);
                         blob.setBlob(bb.array());
 
@@ -406,9 +457,9 @@ public class AppWebResource extends AbstractWebResource {
                         String imsi = dto.getPayload().getInput().getContexts().get(0).getContextId();
                         Versioned<FpcDTO> dto2 = fpcSet.get(imsi);
                         if (dto2 != null) {
-                            FpcDTO ddto = dto2.value();
-                            ddto.getPayload().getInput().getContexts().get(0).
-                                    setDl(ddto.getPayload().getInput().getContexts().get(0).getDl());
+//                            FpcDTO ddto = dto2.value();
+//                             ddto.getPayload().getInput().getContexts().get(0).
+//                                     setDl(ddto.getPayload().getInput().getContexts().get(0).getDl());
                             Context con = dto.getPayload().getInput().getContexts().get(0);
                             String dpn = con.getDpns().get(0).getDpnId();
                             String s1u_sgw_gtpu_teid = con.getUl().getMobilityTunnelParameters().getTunnelIdentifier();
@@ -445,7 +496,7 @@ public class AppWebResource extends AbstractWebResource {
 
     /**
      * Get all flows for a given ZMQ device
-     * @param deviceId
+     * @param deviceId device identification
      * @return 200 OK
      */
 
