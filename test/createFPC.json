@@ -1,51 +1,53 @@
 {
-   "DeviceId" : "zmq:dev1",
-   "Payload" :  { "input": {
-        "op-id": "test",
-        "contexts": [
-            {
-                "instructions": {
-                    "instr-3gpp-mob": "session uplink"
-                },
-                "context-id": "test",
-                                "dpn-group": "site1-l3",
-                "delegating-ip-prefixes": [
-                    "test"
-                ],
-                "ul": {
-                    "tunnel-local-address": "test",
-                    "tunnel-remote-address": "test",
-                    "mobility-tunnel-parameters": {
-                        "tunnel-type": "ietf-dmm-threegpp:gtpv1",
-                        "tunnel-identifier": "test"
+    "DeviceId": "zmq:dev1",
+    "Payload": {
+        "input": {
+            "admin-state": "enabled",
+            "client-id": "1",
+            "contexts": [
+                {
+                    "context-id": "imsi-9135551234",
+                    "delegating-ip-prefixes": [
+                        "192.168.1.5/32"
+                    ],
+                    "dl": {
+                        "dpn-parameters": {},
+                        "mobility-tunnel-parameters": {
+                            "tunnel-identifier": "2222",
+                            "tunnel-type": "ietf-dmm-threegpp:gtpv1"
+                        },
+                        "tunnel-local-address": "192.168.1.1",
+                        "tunnel-remote-address": "10.1.1.1"
                     },
-                        "dpn-parameters": {}
-                },
-                                "dl": {
-                    "tunnel-local-address": "test",
-                    "tunnel-remote-address": "test",
-                    "mobility-tunnel-parameters": {
-                        "tunnel-type": "ietf-dmm-threegpp:gtpv1",
-                        "tunnel-identifier": "test"
+                    "dpn-group": "site1-l3",
+                    "dpns": [
+                        {
+                            "direction": "uplink",
+                            "dpn-id": "dpn1",
+                            "dpn-parameters": {}
+                        }
+                    ],
+                    "ebi": "5",
+                    "imsi": "9135551234",
+                    "instructions": {
+                        "instr-3gpp-mob": "session uplink"
                     },
-                        "dpn-parameters": {}
-                },
-                "dpns": [
-                    {
-                        "dpn-id": "dpn1",
-                        "direction": "uplink",
-                        "dpn-parameters": {}
+                    "lbi": "5",
+                    "ul": {
+                        "dpn-parameters": {},
+                        "mobility-tunnel-parameters": {
+                            "tunnel-identifier": "1111",
+                            "tunnel-type": "ietf-dmm-threegpp:gtpv1"
+                        },
+                        "tunnel-local-address": "192.168.1.1",
+                        "tunnel-remote-address": "10.1.1.1"
                     }
-                ],
-                "imsi": "test",
-                "ebi": "test",
-                "lbi": "test"
-            }
-        ],
-        "client-id": "1",
-        "session-state": "complete",
-        "admin-state": "enabled",
-        "op-type": "test",
-        "op-ref-scope": "test"
-    } }
+                }
+            ],
+            "op-id": "1",
+            "op-ref-scope": "op",
+            "op-type": "create",
+            "session-state": "complete"
+        }
+    }
 }

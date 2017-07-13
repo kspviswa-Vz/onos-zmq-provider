@@ -1,16 +1,18 @@
 {
-	"DeviceId": "zmq:dev1",
-	"Payload": {
-		"input": {
-			"op-id": "test",
-			"targets": [{
-				"target": "test"
-			}],
-			"client-id": "1",
-			"session-state": "complete",
-			"admin-state": "enabled",
-			"op-type": "test",
-			"op-ref-scope": "test"
-		}
-	}
+    "DeviceId": "zmq:dev1",
+    "Payload": {
+        "input": {
+            "admin-state": "enabled",
+            "client-id": "1",
+            "op-id": "3",
+            "op-ref-scope": "none",
+            "op-type": "delete",
+            "session-state": "complete",
+            "targets": [
+                {
+                    "target": "/ietf-dmm-fpcagent:tenants/tenant/default/fpc-mobility/contexts/imsi-9135551234"
+                }
+            ]
+        }
+    }
 }
