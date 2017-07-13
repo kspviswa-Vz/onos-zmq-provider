@@ -135,7 +135,7 @@ public class ZeromqSBControllerImpl implements ZeromqSBController{
     public void createDevice(DeviceId id) {
         //int chassisId = Integer.parseInt(id.uri().getSchemeSpecificPart());
         int chassisId = 123123;
-        Device.Type type = Device.Type.SWITCH;
+        Device.Type type = Device.Type.OTHER;
         int portCount = 1;
         SparseAnnotations annotations = DefaultAnnotations.builder()
                 .set(AnnotationKeys.PROTOCOL, "ZeroMQ")
