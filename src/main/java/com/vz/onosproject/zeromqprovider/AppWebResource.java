@@ -330,7 +330,7 @@ public class AppWebResource extends AbstractWebResource {
         for( String item : parts) {
             //System.out.println(item);
             if(item.contains("imsi-")) {
-                return item;
+                return item.split("imsi-")[1];
             }
         }
 
@@ -399,6 +399,8 @@ public class AppWebResource extends AbstractWebResource {
             if(isDeleteMsg(sPayload)) {
                 log.info("### It is session delete");
                 String imsi = extractImsi(dto.getPayload().getInput().getTargets().get(0).getTarget());
+
+                log.info("#### imsi : " + imsi + " , keys: " + fpcSet.keySet().toString());
                 Versioned<FpcDTO> dto2 = fpcSet.get(imsi);
                 if (dto2 != null) {
                     FpcDTO ddto = dto2.value();
@@ -453,8 +455,8 @@ public class AppWebResource extends AbstractWebResource {
                     }
                     case DOWNLINK: {
                         log.info("### It is session downlink");
-                        //String imsi = dto.getPayload().getInput().getContexts().get(0).getImsi();
-                        String imsi = dto.getPayload().getInput().getContexts().get(0).getContextId();
+                        String imsi = dto.getPayload().getInput().getContexts().get(0).getImsi();
+                        // String imsi = dto.getPayload().getInput().getContexts().get(0).getContextId();
                         Versioned<FpcDTO> dto2 = fpcSet.get(imsi);
                         if (dto2 != null) {
 //                            FpcDTO ddto = dto2.value();
