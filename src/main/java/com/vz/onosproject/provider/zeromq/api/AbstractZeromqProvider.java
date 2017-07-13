@@ -21,7 +21,7 @@ import org.onosproject.net.provider.ProviderId;
 
 public class AbstractZeromqProvider extends AbstractProvider {
 
-    static final String SCHEME = "zeromq";
+    static final String SCHEME = "zmq";
     static final String PROVIDER_ID = "com.vz.onosproject.provider.zeromq";
 
     protected AbstractZeromqProvider() {
