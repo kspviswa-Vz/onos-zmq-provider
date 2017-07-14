@@ -109,7 +109,6 @@ public class AppWebResource extends AbstractWebResource {
                 .register(FpcDTO.class)
                 .register(Payload.class)
                 .register(Input.class)
-                .register(Payload.class)
                 .register(Instructions.class)
                 .register(Context.class)
                 .register(Dl.class)
