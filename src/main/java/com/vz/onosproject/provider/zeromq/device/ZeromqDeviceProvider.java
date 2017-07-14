@@ -97,27 +97,27 @@ public class ZeromqDeviceProvider extends AbstractZeromqProvider implements Devi
     @Override
     public void triggerProbe(DeviceId deviceId) {
 
-        log.info("### DeviceProvider triggeringProble ###");
+        // log.info("### DeviceProvider triggeringProble ###");
 
     }
 
     @Override
     public void roleChanged(DeviceId deviceId, MastershipRole mastershipRole) {
 
-        log.info("### DeviceProvider roleChanged ####");
+        // log.info("### DeviceProvider roleChanged ####");
 
     }
 
     @Override
     public boolean isReachable(DeviceId deviceId) {
 
-        log.info("### DeviceProvider isReachable ####");
+        // log.info("### DeviceProvider isReachable ####");
         return true;
 
     }
 
     @Override
     public void changePortState(DeviceId deviceId, PortNumber portNumber, boolean b) {
-        log.info("### DeviceProvider changePortState ####");
+        // log.info("### DeviceProvider changePortState ####");
     }
 }

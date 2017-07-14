@@ -346,7 +346,7 @@ public class AppWebResource extends AbstractWebResource {
     @Consumes(MediaType.APPLICATION_JSON)
 
     public Response persisFlow(InputStream stream) {
-        log.info("#### Pushing a flow");
+        // log.info("#### Pushing a flow");
         ObjectNode jsonTree = null, jsonTree2 = null;
         List<String> devices = controller.getAvailableDevices();
         try {
@@ -397,17 +397,17 @@ public class AppWebResource extends AbstractWebResource {
 
             // First check for delete as JSON itself
             if(isDeleteMsg(sPayload)) {
-                log.info("### It is session delete");
+                // log.info("### It is session delete");
                 String imsi = extractImsi(dto.getPayload().getInput().getTargets().get(0).getTarget());
 
-                log.info("#### imsi : " + imsi + " , keys: " + fpcSet.keySet().toString());
+                // log.info("#### imsi : " + imsi + " , keys: " + fpcSet.keySet().toString());
                 Versioned<FpcDTO> dto2 = fpcSet.get(imsi);
                 if (dto2 != null) {
                     FpcDTO ddto = dto2.value();
                     //log.info("Here is a matching ul & dl for incoming imsi");
                     //log.info("#######");
                     //log.info(ddto.toString());
-                    log.info("Proceeding to delete session marked by imsi => %s", imsi);
+                    log.info("Proceeding to delete session marked by imsi => " + imsi);
                     Context con = ddto.getPayload().getInput().getContexts().get(0);
                     String dpn = con.getDpns().get(0).getDpnId();
                     String ebi = con.getLbi();
@@ -417,10 +417,10 @@ public class AppWebResource extends AbstractWebResource {
                     blob.setBlob(bb.array());
 
                     controller.writeToDevice(deviceId, blob);
-                    log.info("Payload sent to Device %s for IMSI %s", deviceId, imsi);
+                    log.info("Payload sent to Device " + deviceId + " for IMSI " + imsi);
 
                     fpcSet.remove(imsi);
-                    log.info(" Transaction record for IMSI %s purged from store", imsi);
+                    log.info("Transaction record for IMSI " + imsi + " purged from store");
 
                 } else {
                     throw new IllegalArgumentException("No matching uplink");
@@ -430,31 +430,30 @@ public class AppWebResource extends AbstractWebResource {
                 // If the type is Uplink, go-ahead & put a entry
                 switch (checkAndReturnInstructionType(dto)) {
                     case SESSION_UPLINK: {
-                        log.info("### It is session uplink");
+                        // log.info("### It is session uplink");
                         String imsi = dto.getPayload().getInput().getContexts().get(0).getImsi();
                         // String imsi = dto.getPayload().getInput().getContexts().get(0).getContextId();
                         fpcSet.put(imsi, dto);
-                        log.info("##### Saved uplink data for IMSI => " + imsi);
+                        // log.info("##### Saved uplink data for IMSI => " + imsi);
                         Context con = dto.getPayload().getInput().getContexts().get(0);
                         String dpn = con.getDpns().get(0).getDpnId();
-                        log.info("##### Delegating Prefixes => " + con.getDelegatingIpPrefixes().toString());
+                        // log.info("##### Delegating Prefixes => " + con.getDelegatingIpPrefixes().toString());
                         String ue_ip = con.getDelegatingIpPrefixes().get(0);
                         String lbi = con.getEbi();
                         String s1u_sgw_gtpu_ipv4 = con.getUl().getTunnelLocalAddress();
                         String s1u_sgw_gtpu_teid = con.getUl().getMobilityTunnelParameters().getTunnelIdentifier();
 
-                        log.info("##### Before Prepare Create Session");
+                        // log.info("##### Before Prepare Create Session");
                         ByteBuffer bb = prepareCreateSessionPayload(dpn, imsi, ue_ip, lbi, s1u_sgw_gtpu_ipv4, s1u_sgw_gtpu_teid);
                         blob.setBlob(bb.array());
 
                         controller.writeToDevice(deviceId, blob);
-                        log.info("Payload sent to Device %s for IMSI %s", deviceId, imsi);
-
+                        log.info("Payload sent to Device " + deviceId + " for IMSI " + imsi);
 
                         break;
                     }
                     case DOWNLINK: {
-                        log.info("### It is session downlink");
+                        // log.info("### It is session downlink");
                         String imsi = dto.getPayload().getInput().getContexts().get(0).getImsi();
                         // String imsi = dto.getPayload().getInput().getContexts().get(0).getContextId();
                         Versioned<FpcDTO> dto2 = fpcSet.get(imsi);
@@ -472,8 +471,7 @@ public class AppWebResource extends AbstractWebResource {
                             blob.setBlob(bb.array());
 
                             controller.writeToDevice(deviceId, blob);
-                            log.info("Payload sent to Device %s for IMSI %s", deviceId, imsi);
-
+                            log.info("Payload sent to Device " + deviceId + " for IMSI " + imsi);
 
                         } else {
                             throw new IllegalArgumentException("No matching uplink");

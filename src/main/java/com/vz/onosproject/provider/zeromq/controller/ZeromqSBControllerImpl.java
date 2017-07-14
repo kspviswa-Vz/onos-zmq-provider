@@ -100,7 +100,7 @@ public class ZeromqSBControllerImpl implements ZeromqSBController{
             log.info("### Starting executorService ###");
             while (!Thread.currentThread().isInterrupted()) {
                 String clientAddress = routerSocket.recvStr();
-                log.info("Got connection from " + clientAddress);
+                // log.info("Got connection from " + clientAddress);
                 String empty = routerSocket.recvStr();
                 String clientRequest = routerSocket.recvStr();
                 ///log.info(" Message content " + clientRequest);
@@ -109,9 +109,12 @@ public class ZeromqSBControllerImpl implements ZeromqSBController{
 
                 //log.info("##### About to enter if");
                 if(clientRequest.equalsIgnoreCase("Ready")) {
-                    log.info("### Adding device " + deviceId.toString());
-                    deviceMap.putIfAbsent(deviceId, clientAddress);
-                    createDevice(deviceId);
+                    // log.info("### Adding device " + deviceId.toString());
+
+                    if (!deviceMap.keySet().contains(deviceId)) {
+                        deviceMap.put(deviceId, clientAddress);
+                        createDevice(deviceId);
+                    }
                 }
             }
         });
