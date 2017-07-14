@@ -1,0 +1,53 @@
+{
+    "DeviceId": "zmq:dev1",
+    "Payload": {
+        "input": {
+            "admin-state": "enabled",
+            "client-id": "1",
+            "contexts": [
+                {
+                    "context-id": "imsi-9135551234",
+                    "delegating-ip-prefixes": [
+                        "192.168.1.5/32"
+                    ],
+                    "dl": {
+                        "dpn-parameters": {},
+                        "mobility-tunnel-parameters": {
+                            "tunnel-identifier": "4444",
+                            "tunnel-type": "ietf-dmm-threegpp:gtpv1"
+                        },
+                        "tunnel-local-address": "192.168.1.1",
+                        "tunnel-remote-address": "10.1.1.4"
+                    },
+                    "dpn-group": "site1-l3",
+                    "dpns": [
+                        {
+                            "direction": "uplink",
+                            "dpn-id": "dpn1",
+                            "dpn-parameters": {}
+                        }
+                    ],
+                    "ebi": "5",
+                    "imsi": "9135551234",
+                    "instructions": {
+                        "instr-3gpp-mob": "downlink"
+                    },
+                    "lbi": "5",
+                    "ul": {
+                        "dpn-parameters": {},
+                        "mobility-tunnel-parameters": {
+                            "tunnel-identifier": "3333",
+                            "tunnel-type": "ietf-dmm-threegpp:gtpv1"
+                        },
+                        "tunnel-local-address": "192.168.1.1",
+                        "tunnel-remote-address": "10.1.1.2"
+                    }
+                }
+            ],
+            "op-id": "2",
+            "op-ref-scope": "op",
+            "op-type": "update",
+            "session-state": "complete"
+        }
+    }
+}

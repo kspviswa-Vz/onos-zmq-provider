@@ -6,6 +6,7 @@ echo ""
 for i in {1..1000}
 do
    ./createFPC-CURL.sh
+   ./modifyFPC-CURL.sh
    ./deleteFPC-CURL.sh
 done
 
